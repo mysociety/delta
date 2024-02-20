@@ -37,8 +37,8 @@ lazy_static! {
     static ref GITHUB_REMOTE_URL: Regex = Regex::new(
         r"(?x)
         ^
-        (?:https://|[^@]+@)? # Support both HTTPS and SSH URLs
-        github\.com
+        (?:https://|[^@]+@|ssh://)? # Support both HTTPS and SSH URLs
+        (?:github\.com|git\.mysociety\.org/data/git)
         [:/]              # This separator differs between SSH and HTTPS URLs
         ([^/]+)           # Capture the user/org name
         /
@@ -96,10 +96,13 @@ impl FromStr for GitRemoteRepo {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(caps) = GITHUB_REMOTE_URL.captures(s) {
+            let mut user = caps.get(1).unwrap().as_str();
+            if user == "public" {
+                user = "mysociety"
+            }
             Ok(Self::GitHub {
                 slug: format!(
                     "{user}/{repo}",
-                    user = caps.get(1).unwrap().as_str(),
                     repo = caps.get(2).unwrap().as_str()
                 ),
             })
